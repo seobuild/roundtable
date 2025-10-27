@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Roundtable.ai — 9 Enneagram Retail Experts</title>
+
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #0f172a; color: #e2e8f0; }
+    .card { background: #1e293b; border-radius: 1rem; }
+    .btn { @apply bg-yellow-400 text-gray-900 font-bold px-6 py-3 rounded-full hover:bg-yellow-300 transition; }
+    details summary { cursor: pointer; }
+    details[open] summary { margin-bottom: 0.5rem; }
+    .logo { font-weight: 800; font-size: 1.5rem; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-gradient-to-b from-slate-900 to-slate-800 py-6 border-b border-slate-700">
+    <div class="max-w-6xl mx-auto px-6 flex justify-between items-center">
+      <h1 class="logo text-yellow-400">Roundtable.ai</h1>
+      <p class="text-sm text-slate-400">AI BrainTrust • 9 Enneagram Experts</p>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="max-w-4xl mx-auto px-6 py-12 text-center">
+    <h2 class="text-3xl md:text-4xl font-bold mb-3" id="headline">
+      Will Amazon Buy Now to Boost Prime Membership Growth?
+    </h2>
+    <p class="text-slate-400 mb-6">Chancellor Maggun • Retail Analyst</p>
+    
+    <textarea id="input" class="w-full p-5 rounded-xl bg-slate-800 text-white placeholder-slate-500 border border-slate-600 focus:outline-none focus:border-yellow-400" rows="2" placeholder="Paste a headline or article URL..."></textarea>
+    
+    <button onclick="generate()" class="btn w-full mt-4 text-lg">Launch Roundtable</button>
+  </section>
+
+  <!-- Output -->
+  <section id="output" class="max-w-4xl mx-auto px-6 pb-20"></section>
+
+  <!-- Footer -->
+  <footer class="text-center py-8 text-xs text-slate-500 border-t border-slate-700">
+    <p>Powered by xAI • For <a href="https://retailwire.com" class="underline hover:text-yellow-400">RetailWire.com</a></p>
+  </footer>
+
+  <!-- Core Logic -->
+  <script>
+    // === 9 Enneagram Personas ===
+    const PERSONAS = [
+      {type: "1", name: "Paula Principle", camp: "Reformer", icon: "Scales", tone: "must, integrity, unethical"},
+      {type: "8", name: "Max Power", camp: "Reformer", icon: "Fist", tone: "dominate, takeover, weakness"},
+      {type: "6", name: "Dana Defender", camp: "Reformer", icon: "Shield", tone: "risk, prepare, contingency"},
+      {type: "3", name: "Alex Achiever", camp: "Strategist", icon: "Chart", tone: "growth, metrics, win"},
+      {type: "5", name: "Quinn Query", camp: "Strategist", icon: "Brain", tone: "data, predict, optimize"},
+      {type: "7", name: "Zoe Zest", camp: "Strategist", icon: "Rocket", tone: "fun, next big, experience"},
+      {type: "2", name: "Carey Connector", camp: "Enthusiast", icon: "Heart", tone: "people, care, community"},
+      {type: "4", name: "Indi Icon", camp: "Enthusiast", icon: "Palette", tone: "authentic, unique, story"},
+      {type: "9", name: "Harmony Hale", camp: "Enthusiast", icon: "Dove", tone: "peace, balance, partnership"}
+    ];
+
+    const CAMP_COLORS = {
+      Reformer: "border-l-yellow-500",
+      Strategist: "border-l-green-500",
+      Enthusiast: "border-l-purple-500"
+    };
+
+    // === Main Function ===
+    async function generate() {
+      const input = document.getElementById("input").value.trim() || document.getElementById("headline").textContent;
+      document.getElementById("output").innerHTML = `<p class="text-center py-12 text-yellow-400 text-lg">Launching 9-expert roundtable...</p>`;
+
+      const prompt = `
+You are hosting a RetailWire-style BrainTrust roundtable.
+Headline: "${input}"
+
+Respond as each expert in **one sharp paragraph (60–80 words)**. Include:
+• Core stance
+• 1 retail prediction
+• 1 brand or number example
+
+Tone must match exactly. Format:
+
+### {type} {name}
+> "{rant in quote style}"
+
+${PERSONAS.map(p => `${p.type} ${p.name} (${p.camp}): ${p.tone}`).join('\n')}
+`;
+
+      try {
+        const res = await fetch("https://api.x.ai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${process.env.XAI_API_KEY || 'YOUR_XAI_API_KEY'}`
+          },
+          body: JSON.stringify({
+            model: "grok-beta",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.85,
+            max_tokens: 1800
+          })
+        });
+
+        if (!res.ok) throw new Error("API error");
+
+        const data = await res.json();
+        const text = data.choices[0].message.content;
+
+        // === Parse & Group ===
+        const groups = { Reformer: [], Strategist: [], Enthusiast: [] };
+        const blocks = text.split("###").slice(1);
+
+        blocks.forEach(block => {
+          const lines = block.trim().split("\n");
+          if (lines.length < 2) return;
+          const header = lines[0].trim();
+          const quote = lines.slice(1).join(" ").replace(/^>\s*/, "").replace(/^"/, "").replace(/"$/, "").trim();
+          const [type, ...nameParts] = header.split(" ");
+          const name = nameParts.join(" ");
+          const persona = PERSONAS.find(p => p.type === type && p.name === name);
+          if (persona) groups[persona.camp].push({ ...persona, quote });
+        });
+
+        // === Render ===
+        let html = `<div class="space-y-8">`;
+        for (const [camp, voices] of Object.entries(groups)) {
+          html += `
+          <div class="card p-6 shadow-xl">
+            <h3 class="text-2xl font-bold text-yellow-400 mb-5 flex items-center gap-2">
+              ${camp}
+            </h3>
+            <div class="space-y-4">`;
+          
+          voices.forEach(v => {
+            html += `
+              <details class="bg-slate-800 rounded-lg p-4 border-l-4 ${CAMP_COLORS[camp]}">
+                <summary class="font-semibold text-white flex items-center gap-2 cursor-pointer hover:text-yellow-300">
+                  <span class="text-lg">${v.icon}</span> ${v.type} ${v.name}
+                </summary>
+                <blockquote class="mt-3 pl-6 italic text-slate-300 text-sm leading-relaxed">
+                  “${v.quote}”
+                </blockquote>
+              </details>`;
+          });
+          
+          html += `</div></div>`;
+        }
+        html += `</div>`;
+        
+        document.getElementById("output").innerHTML = html;
+      } catch (e) {
+        document.getElementById("output").innerHTML = `
+          <div class="text-center py-12">
+            <p class="text-red-400 mb-4">Error: ${e.message}</p>
+            <p class="text-slate-400">Check your <code class="bg-slate-700 px-2 py-1 rounded">XAI_API_KEY</code> in Vercel Settings.</p>
+          </div>`;
+      }
+    }
+
+    // === Auto-run on load ===
+    window.addEventListener("load", () => setTimeout(generate, 1000));
+  </script>
+</body>
+</html>
